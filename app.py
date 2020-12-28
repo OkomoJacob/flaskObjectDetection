@@ -1,7 +1,7 @@
-import os
+import os #to acces files from your pc
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 from flask_bootstrap import Bootstrap
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename #For security of our app
 import numpy as np
 import os
 import six.moves.urllib as urllib
@@ -18,23 +18,26 @@ PATH_TO_CKPT = MODEL_NAME + '/frozen_inference_graph.pb'
 PATH_TO_LABELS = os.path.join('data', 'mscoco_label_map.pbtxt')
 NUM_CLASSES = 90
 
+# detections
 detection_graph = tf.Graph()
-with detection_graph.as_default():
-  od_graph_def = tf.GraphDef()
-  with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
+with detection_graph.as_default(): #initialize a detection graph
+  od_graph_def = tf.compat.v1.GraphDef()
+  with tf.compat.v2.io.gfile.GFile(PATH_TO_CKPT, 'r') as fid:
     serialized_graph = fid.read()
     od_graph_def.ParseFromString(serialized_graph)
+    # use tf to import the graph_def
     tf.import_graph_def(od_graph_def, name='')
 label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
+#convert label maps to categories
 categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
 category_index = label_map_util.create_category_index(categories)
 
-
+# load the image as a numpy array for the pixels to be graphed
 def load_image_into_numpy_array(image):
   (im_width, im_height) = image.size
   return np.array(image.getdata()).reshape(
       (im_height, im_width, 3)).astype(np.uint8)
-
+      
 
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
@@ -68,6 +71,7 @@ def uploaded_file(filename):
     TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR,filename.format(i)) for i in range(1, 2) ]
     IMAGE_SIZE = (12, 8)
 
+    # Object detection and binding
     with detection_graph.as_default():
         with tf.Session(graph=detection_graph) as sess:
             for image_path in TEST_IMAGE_PATHS:
@@ -96,5 +100,4 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'],
                                filename)
 if __name__ == '__main__':
-    app.run(debug=True,host='0.0.0.0',port=5000)
-
+    app.run(debug = True,host='0.0.0.0',port = cd5000)
